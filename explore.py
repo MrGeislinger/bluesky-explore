@@ -1,7 +1,9 @@
 # %%
 import atproto
 import dotenv
+import matplotlib.pyplot as plt
 import os
+import pandas as pd
 import requests
 import time
 
@@ -102,6 +104,41 @@ def get_profile_info(handle: str) -> dict[str] | None:
         return None
 
 
+# %% Plots
+def get_dataframe(followers: list[dict]):
+    df = pd.DataFrame(followers)
+    # Lazily assuming this exists
+    df.created_at
+    df.created_at = pd.to_datetime(df.created_at)
+    
+    return df
+
+def plot_profiles(
+    df: pd.DataFrame,
+    kind: str | None = None,
+):
+    # Resample the data by day and count the number of accounts created
+    df_resampled = df.set_index('created_at')
+    daily_counts = df_resampled.resample('D').size()
+
+    f, ax = plt.subplots()
+    ax.set_title('Accounts Created Over Time')
+    ax.set_xlabel('Date')
+
+    if kind and kind.lower() == 'cdf':
+        cumulative_counts = daily_counts.cumsum()
+        # Normalize cumulative counts to get the CDF
+        plotting_data = cumulative_counts / cumulative_counts.max()
+        ax.set_ylabel('CDF')
+    else:
+        plotting_data = daily_counts
+        ax.set_ylabel('Number of Accounts Created')
+        
+    
+    ax.plot(plotting_data)
+    f.autofmt_xdate()
+    plt.show()
+
 
 # %%
 if __name__ == '__main__':
@@ -124,3 +161,6 @@ if __name__ == '__main__':
     #     description = follower.get('description', '')
     #     print(f'{name}\n\t{handle}\n\t{description}\n')
 
+    df = get_dataframe(followers)
+    plot_profiles(df)
+    plot_profiles(df, kind='cdf')
